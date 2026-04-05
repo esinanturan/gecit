@@ -32,26 +32,28 @@ Additionally, some ISPs poison DNS responses. gecit includes a built-in DoH (DNS
 
 See [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) for the full technical explanation.
 
-## Quick start
+## Building
 
-### Linux
+### Requirements
 
-```bash
-# Build (requires Lima VM on macOS for BPF compilation)
-lima make gecit-linux-arm64
-
-# Run
-sudo ./bin/gecit-linux-arm64 run
-```
-
-### macOS
+- Go 1.21+
+- Linux: kernel 5.10+, clang, llvm-strip
+- macOS: libpcap (included with Xcode CLI tools)
 
 ```bash
-# Build
+git clone https://github.com/boratanrikulu/gecit.git
+cd gecit
+
+# Linux (BPF compilation + binary)
+make bpf-all              # compile BPF objects (x86 + arm64)
+make gecit-linux-amd64    # or gecit-linux-arm64
+
+# macOS
 make gecit-darwin-arm64
 
 # Run
-sudo ./bin/gecit-darwin-arm64 run
+sudo ./bin/gecit-linux-arm64 run    # Linux
+sudo ./bin/gecit-darwin-arm64 run   # macOS
 ```
 
 gecit sets up everything automatically:
@@ -61,28 +63,6 @@ gecit sets up everything automatically:
 - **macOS**: System HTTPS proxy set (all apps use it automatically)
 
 Press `Ctrl+C` to stop — everything is restored (DNS, proxy settings, BPF programs).
-
-## Building from source
-
-### Requirements
-
-- Go 1.21+
-- Linux: clang, llvm-strip (for BPF compilation)
-- macOS: libpcap (included with Xcode CLI tools)
-
-```bash
-# Clone
-git clone https://github.com/boratanrikulu/gecit.git
-cd gecit
-
-# Build BPF objects (Linux or Lima VM)
-make bpf-all
-
-# Build binaries
-make gecit-linux-amd64    # Linux x86_64
-make gecit-linux-arm64    # Linux ARM64
-make gecit-darwin-arm64   # macOS Apple Silicon
-```
 
 ## Usage
 
