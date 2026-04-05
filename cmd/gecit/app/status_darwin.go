@@ -4,24 +4,23 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/boratanrikulu/gecit/pkg/capture"
+	"github.com/boratanrikulu/gecit/pkg/proxy"
 )
 
 func printPlatformStatus() {
-	fmt.Printf("  engine:    bpf-capture\n")
+	fmt.Printf("  engine:     http-connect\n")
 
 	if os.Geteuid() != 0 {
 		fmt.Printf("  (run with sudo for accurate capability detection)\n")
 		return
 	}
 
-	iface, err := capture.DefaultInterface()
+	iface, err := proxy.DefaultInterface()
 	if err != nil {
-		fmt.Printf("  interface: not detected\n")
+		fmt.Printf("  interface:  not detected\n")
 	} else {
-		fmt.Printf("  interface: %s\n", iface)
+		fmt.Printf("  interface:  %s\n", iface)
 	}
 
-	fmt.Printf("  /dev/bpf:  available\n")
 	fmt.Printf("  raw socket: available\n")
 }
