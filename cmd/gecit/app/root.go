@@ -7,12 +7,12 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "gecit",
-	Short: "gecit — DPI bypass via eBPF + fake TLS ClientHello injection + DoH DNS",
+	Short: "gecit — DPI bypass via fake TLS ClientHello injection + DoH DNS",
 	Long: `gecit injects fake TLS ClientHello packets to desynchronize DPI middleboxes.
 Built-in DoH (DNS-over-HTTPS) resolver bypasses DNS poisoning.
 
-Linux: eBPF sock_ops (kernel-level, no proxy)
-macOS: HTTP CONNECT proxy (system-wide)`,
+Linux:         eBPF sock_ops (kernel-level, zero overhead)
+macOS/Windows: TUN transparent proxy (all apps intercepted)`,
 }
 
 func init() {
