@@ -62,6 +62,10 @@ func buildIPHeader(conn ConnInfo, ttl int, payloadLen int) []byte {
 	hdr[9] = syscall.IPPROTO_TCP                  // Protocol
 	copy(hdr[12:16], conn.SrcIP.To4())
 	copy(hdr[16:20], conn.DstIP.To4())
+	// IP header checksum — required for pcap_sendpacket (kernel won't fill it).
+	cs := Checksum(hdr)
+	hdr[10] = byte(cs >> 8)
+	hdr[11] = byte(cs)
 	return hdr
 }
 

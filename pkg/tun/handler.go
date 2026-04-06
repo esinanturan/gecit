@@ -95,7 +95,10 @@ func (h *handler) injectAndForward(appConn, serverConn net.Conn, dst string) {
 	}
 
 	for i := 0; i < 3; i++ {
-		h.mgr.rawSock.SendFake(connInfo, fake.TLSClientHello, h.mgr.cfg.FakeTTL)
+		if err := h.mgr.rawSock.SendFake(connInfo, fake.TLSClientHello, h.mgr.cfg.FakeTTL); err != nil {
+			h.mgr.logger.WithError(err).Warn("SendFake failed")
+			break
+		}
 	}
 	h.mgr.logger.WithFields(logrus.Fields{
 		"dst": dst, "seq": seq, "ack": ack, "ttl": h.mgr.cfg.FakeTTL,
