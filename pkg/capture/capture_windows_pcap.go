@@ -24,7 +24,13 @@ func NewCapture(iface string, ports []uint16) (Detector, error) {
 		return nil, fmt.Errorf("Npcap not installed — required for DPI bypass on Windows (download from npcap.com)")
 	}
 
-	handle, err := pcap.OpenLive(iface, 68, false, 100*time.Millisecond)
+	// Windows pcap needs device path (\Device\NPF_{GUID}), not friendly name.
+	pcapDev, err := resolvePcapDevice(iface)
+	if err != nil {
+		return nil, err
+	}
+
+	handle, err := pcap.OpenLive(pcapDev, 68, false, 100*time.Millisecond)
 	if err != nil {
 		return nil, fmt.Errorf("pcap open %s: %w", iface, err)
 	}
@@ -110,6 +116,42 @@ func (c *pcapCapture) processPacket(packet gopacket.Packet, cb Callback) {
 	}
 
 	cb(evt)
+}
+
+// resolvePcapDevice maps a friendly interface name (e.g. "Ethernet") to
+// the pcap device path (e.g. \Device\NPF_{GUID}) by matching IP addresses.
+func resolvePcapDevice(friendlyName string) (string, error) {
+	goIface, err := net.InterfaceByName(friendlyName)
+	if err != nil {
+		return "", fmt.Errorf("interface %s: %w", friendlyName, err)
+	}
+	goAddrs, err := goIface.Addrs()
+	if err != nil || len(goAddrs) == 0 {
+		return "", fmt.Errorf("no addresses on %s", friendlyName)
+	}
+
+	// Collect IPs from the Go interface.
+	ipSet := make(map[string]bool)
+	for _, a := range goAddrs {
+		if ipNet, ok := a.(*net.IPNet); ok {
+			ipSet[ipNet.IP.String()] = true
+		}
+	}
+
+	// Find pcap device with matching IP.
+	devs, err := pcap.FindAllDevs()
+	if err != nil {
+		return "", fmt.Errorf("pcap find devices: %w", err)
+	}
+	for _, dev := range devs {
+		for _, addr := range dev.Addresses {
+			if ipSet[addr.IP.String()] {
+				return dev.Name, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no pcap device found for %s", friendlyName)
 }
 
 // NpcapAvailable checks if Npcap is installed by trying to find its DLL.
