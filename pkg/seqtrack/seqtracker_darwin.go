@@ -1,4 +1,4 @@
-package proxy
+package seqtrack
 
 import (
 	"net"
@@ -17,7 +17,7 @@ type SeqTracker struct {
 }
 
 func NewSeqTracker(iface string, ports []uint16) (*SeqTracker, error) {
-	det, err := capture.NewBPFCapture(iface, ports)
+	det, err := capture.NewCapture(iface, ports)
 	if err != nil {
 		return nil, err
 	}
