@@ -137,7 +137,7 @@ The DPI is usually at the first few ISP hops. Default TTL=8 works for most netwo
 |---|---|---|---|
 | **Engine** | eBPF sock_ops | TUN + gVisor netstack | TUN + gVisor netstack |
 | **Connection detection** | BPF perf events | TUN packet interception | TUN packet interception |
-| **Fake injection** | Raw socket | Raw socket | Raw socket (TBD) |
+| **Fake injection** | Raw socket | Raw socket | Raw socket via Npcap |
 | **DNS bypass** | DoH + `/etc/resolv.conf` | DoH + `networksetup` | DoH + `netsh` |
 | **App configuration** | None needed | None needed (all apps via TUN) | None needed (all apps via TUN) |
 | **Root required** | Yes (`CAP_BPF`) | Yes (TUN + raw socket) | Yes (Administrator) |
@@ -210,7 +210,7 @@ These platforms don't expose kernel-level hooks like eBPF. A TUN virtual interfa
 - [x] Linux — eBPF sock_ops
 - [x] macOS — TUN transparent proxy
 - [x] DoH DNS resolver
-- [ ] Windows — TUN transparent proxy (WinTUN)
+- [x] Windows — TUN transparent proxy
 - [ ] Auto-TTL detection (traceroute to find DPI hop count)
 - [ ] ECH (Encrypted Client Hello) support
 
