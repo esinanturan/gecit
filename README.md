@@ -58,6 +58,9 @@ sudo ./gecit run
 curl -L https://github.com/boratanrikulu/gecit/releases/latest/download/gecit-darwin-amd64 -o gecit
 chmod +x gecit
 sudo ./gecit run
+
+# Windows (amd64) — requires Npcap (npcap.com)
+# Download gecit-windows-amd64.exe from the releases page
 ```
 
 ### Building from source
