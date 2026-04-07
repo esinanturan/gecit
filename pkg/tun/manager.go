@@ -226,9 +226,15 @@ func detectPhysicalInterface() string {
 		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-		// Skip TUN/VPN interfaces.
 		name := iface.Name
-		if len(name) >= 4 && name[:4] == "utun" {
+		// Skip virtual interfaces (TUN, bridge, veth, etc.)
+		for _, prefix := range []string{"utun", "bridge", "veth", "vmnet", "lo"} {
+			if len(name) >= len(prefix) && name[:len(prefix)] == prefix {
+				name = ""
+				break
+			}
+		}
+		if name == "" {
 			continue
 		}
 		addrs, _ := iface.Addrs()
