@@ -1,9 +1,11 @@
 # gecit
 
+[Türkçe](README.tr.md)
+
 DPI bypass tool. Injects fake TLS ClientHello packets to desynchronize Deep Packet Inspection middleboxes. Includes built-in DoH DNS resolver.
 
-**Linux**: eBPF sock_ops — hooks directly into the kernel TCP stack. No proxy, no traffic redirection.  
-**macOS/Windows**: TUN-based transparent proxy — intercepts all traffic at the IP layer via a virtual network interface.
+**Linux**: eBPF sock_ops - hooks directly into the kernel TCP stack. No proxy, no traffic redirection.  
+**macOS/Windows**: TUN-based transparent proxy - intercepts all traffic at the IP layer via a virtual network interface.
 
 ```
 sudo gecit run
@@ -32,6 +34,20 @@ Some ISPs inspect the TLS ClientHello SNI field to identify and block specific d
 
 Additionally, some ISPs poison DNS responses. gecit includes a built-in DoH (DNS-over-HTTPS) server that resolves domains through encrypted HTTPS, bypassing DNS-level blocking.
 
+## Requirements
+
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| **OS** | Kernel 5.10+ | macOS 12+ (Monterey) | Windows 10+ |
+| **Privileges** | root / sudo | root / sudo | Administrator |
+| **Dependencies** | None | None | [Npcap](https://npcap.com) |
+
+### Windows notes
+
+- **Npcap**: Download and install from [npcap.com](https://npcap.com/#download). Required for seq/ack extraction and fake packet injection.
+- **Windows Defender**: May flag gecit as `Win32/Wacapew.A!ml` (false positive). gecit creates a TUN interface, modifies DNS, and uses raw sockets - Defender flags this behavior. Add an exception: Windows Security → Virus & threat protection → Exclusions → Add gecit.exe.
+- **Run as Administrator**: Right-click PowerShell → "Run as Administrator", then run `.\gecit.exe run`.
+
 ## Installation
 
 ### Pre-built binaries
@@ -59,7 +75,7 @@ curl -L https://github.com/boratanrikulu/gecit/releases/latest/download/gecit-da
 chmod +x gecit
 sudo ./gecit run
 
-# Windows (amd64) — requires Npcap (npcap.com)
+# Windows (amd64) - requires Npcap (npcap.com)
 curl -L https://github.com/boratanrikulu/gecit/releases/latest/download/gecit-windows-amd64.exe -o gecit.exe
 gecit.exe run
 ```
@@ -87,7 +103,7 @@ gecit sets up everything automatically:
 - **Linux**: eBPF program attached to cgroup (fake injection + MSS fragmentation)
 - **macOS/Windows**: TUN virtual interface with automatic routing (all apps intercepted)
 
-Press `Ctrl+C` to stop — everything is restored (DNS, routes, BPF programs). Windows requires [Npcap](https://npcap.com) for full DPI bypass support.
+Press `Ctrl+C` to stop - everything is restored (DNS, routes, BPF programs). Windows requires [Npcap](https://npcap.com) for full DPI bypass support.
 
 If gecit crashes, run `sudo gecit cleanup` to restore system settings.
 
@@ -167,13 +183,16 @@ No. Your ISP can still see which IP addresses you connect to. gecit only prevent
 It works against DPI systems that inspect individual TCP segments without full reassembly. More sophisticated systems (like those used in China) may detect and block this technique.
 
 **Is this a VPN?**
-No. There is no tunnel, no encryption of traffic, and no remote server involved. gecit operates entirely locally. On macOS/Windows, it uses a TUN interface (similar to VPN plumbing) but traffic goes directly to the internet — no remote server.
+No. There is no tunnel, no encryption of traffic, and no remote server involved. gecit operates entirely locally. On macOS/Windows, it uses a TUN interface (similar to VPN plumbing) but traffic goes directly to the internet - no remote server.
 
 **Why eBPF on Linux?**
-eBPF hooks into the kernel's TCP stack synchronously — the fake packet is sent before the application can write any data. This guarantees correct ordering without needing a proxy or packet interception. Only the handshake touches userspace; data flows through the kernel at full speed.
+eBPF hooks into the kernel's TCP stack synchronously - the fake packet is sent before the application can write any data. This guarantees correct ordering without needing a proxy or packet interception. Only the handshake touches userspace; data flows through the kernel at full speed.
 
 **Why TUN on macOS/Windows?**
 These platforms don't expose kernel-level hooks like eBPF. A TUN virtual interface intercepts all traffic at the IP layer, providing the same coverage as eBPF but with traffic flowing through userspace.
+
+**Why not WinDivert?**
+Most Windows DPI bypass tools use WinDivert, but its code signing certificate expired in 2023. This triggers Windows Defender warnings and blocks driver installation on some systems. gecit uses a TUN-based approach instead, which relies on properly signed drivers and avoids these issues.
 
 ## Architecture
 
@@ -223,10 +242,10 @@ These platforms don't expose kernel-level hooks like eBPF. A TUN virtual interfa
 
 ## Roadmap
 
-- [x] Linux — eBPF sock_ops
-- [x] macOS — TUN transparent proxy
+- [x] Linux - eBPF sock_ops
+- [x] macOS - TUN transparent proxy
 - [x] DoH DNS resolver
-- [x] Windows — TUN transparent proxy
+- [x] Windows - TUN transparent proxy
 - [ ] Auto-TTL detection (traceroute to find DPI hop count)
 - [ ] ECH (Encrypted Client Hello) support
 
