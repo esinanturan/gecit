@@ -158,8 +158,19 @@ func (m *Manager) dialServer(network, addr string, timeout time.Duration) (net.C
 }
 
 // DialContext dials via physical NIC, bypassing TUN. Exported for DoH client.
+// Safe to call before Start() - uses lazy initialization if bindControl not yet set.
 func (m *Manager) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	return (&net.Dialer{Timeout: 5 * time.Second, Control: m.bindControl}).DialContext(ctx, network, addr)
+	ctrl := m.bindControl
+	if ctrl == nil {
+		// Not yet initialized (called before Start). Build a temporary bind.
+		finder := control.NewDefaultInterfaceFinder()
+		iface := m.cfg.Interface
+		if iface == "" {
+			iface = detectPhysicalInterface()
+		}
+		ctrl = control.Append(nil, control.BindToInterface(finder, iface, -1))
+	}
+	return (&net.Dialer{Timeout: 5 * time.Second, Control: ctrl}).DialContext(ctx, network, addr)
 }
 
 func (m *Manager) startSeqTracker() error {
