@@ -18,13 +18,13 @@ type pcapRawSocket struct {
 	dstMAC net.HardwareAddr
 }
 
-func New() (RawSocket, error) {
-	iface, err := defaultInterface()
+func New(iface string) (RawSocket, error) {
+	pcapDev, err := resolvePcapDevice(iface)
 	if err != nil {
-		return nil, fmt.Errorf("detect interface: %w", err)
+		return nil, fmt.Errorf("resolve pcap device for %s: %w", iface, err)
 	}
 
-	handle, err := pcap.OpenLive(iface, 0, false, 100*time.Millisecond)
+	handle, err := pcap.OpenLive(pcapDev, 0, false, 100*time.Millisecond)
 	if err != nil {
 		return nil, fmt.Errorf("pcap open %s: %w (is Npcap installed?)", iface, err)
 	}
@@ -119,21 +119,84 @@ func gatewayMAC(localIP net.IP) net.HardwareAddr {
 	return nil
 }
 
+func resolvePcapDevice(friendlyName string) (string, error) {
+	goIface, err := net.InterfaceByName(friendlyName)
+	if err != nil {
+		return "", fmt.Errorf("interface %s: %w", friendlyName, err)
+	}
+	goAddrs, err := goIface.Addrs()
+	if err != nil || len(goAddrs) == 0 {
+		return "", fmt.Errorf("no addresses on %s", friendlyName)
+	}
+
+	ipSet := make(map[string]bool)
+	for _, a := range goAddrs {
+		if ipNet, ok := a.(*net.IPNet); ok {
+			ipSet[ipNet.IP.String()] = true
+		}
+	}
+
+	devs, err := pcap.FindAllDevs()
+	if err != nil {
+		return "", fmt.Errorf("pcap find devices: %w", err)
+	}
+	for _, dev := range devs {
+		for _, addr := range dev.Addresses {
+			if ipSet[addr.IP.String()] {
+				return dev.Name, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no pcap device found for %s", friendlyName)
+}
+
 func defaultInterface() (string, error) {
+	// Find the physical interface that has the default gateway.
+	// This avoids selecting disconnected Wi-Fi or other inactive adapters.
+	gwIP := defaultGatewayIP()
+
 	devs, err := pcap.FindAllDevs()
 	if err != nil {
 		return "", fmt.Errorf("pcap find devices: %w (is Npcap installed?)", err)
 	}
 
-	for _, dev := range devs {
-		for _, addr := range dev.Addresses {
-			if ip := addr.IP.To4(); ip != nil && !ip.IsLoopback() {
-				if ip.Equal(net.IPv4(10, 0, 85, 1)) {
+	// First pass: find device on the same subnet as the gateway.
+	if gwIP != nil {
+		for _, dev := range devs {
+			for _, addr := range dev.Addresses {
+				ip := addr.IP.To4()
+				if ip == nil || ip.IsLoopback() || ip.Equal(net.IPv4(10, 0, 85, 1)) {
 					continue
 				}
+				mask := addr.Netmask
+				if mask != nil && ip.Mask(mask).Equal(gwIP.Mask(mask)) {
+					return dev.Name, nil
+				}
+			}
+		}
+	}
+
+	// Fallback: first device with a non-loopback, non-TUN IPv4 address.
+	for _, dev := range devs {
+		for _, addr := range dev.Addresses {
+			if ip := addr.IP.To4(); ip != nil && !ip.IsLoopback() && !ip.Equal(net.IPv4(10, 0, 85, 1)) {
 				return dev.Name, nil
 			}
 		}
 	}
 	return "", fmt.Errorf("no suitable network interface found")
+}
+
+func defaultGatewayIP() net.IP {
+	out, err := exec.Command("cmd", "/c", "route", "print", "0.0.0.0").CombinedOutput()
+	if err != nil {
+		return nil
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(strings.TrimSpace(line))
+		if len(fields) >= 3 && fields[0] == "0.0.0.0" && fields[1] == "0.0.0.0" {
+			return net.ParseIP(fields[2])
+		}
+	}
+	return nil
 }

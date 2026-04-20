@@ -61,17 +61,22 @@ func NewManager(cfg Config, logger *logrus.Logger) *Manager {
 func (m *Manager) Start(ctx context.Context) error {
 	m.ctx, m.cancel = context.WithCancel(ctx)
 
-	rs, err := rawsock.New()
+	physIface := m.cfg.Interface
+	if physIface == "" {
+		physIface = detectPhysicalInterface()
+	}
+
+	rs, err := rawsock.New(physIface)
 	if err != nil {
 		return fmt.Errorf("raw socket: %w", err)
 	}
 	m.rawSock = rs
 
-	if err := m.startSeqTracker(); err != nil {
+	if err := m.startSeqTracker(physIface); err != nil {
 		m.logger.WithError(err).Warn("seq tracker unavailable — fakes may be rejected by DPI")
 	}
 
-	if err := m.initNetworking(); err != nil {
+	if err := m.initNetworking(physIface); err != nil {
 		m.rawSock.Close()
 		return err
 	}
@@ -173,11 +178,7 @@ func (m *Manager) DialContext(ctx context.Context, network, addr string) (net.Co
 	return (&net.Dialer{Timeout: 5 * time.Second, Control: ctrl}).DialContext(ctx, network, addr)
 }
 
-func (m *Manager) startSeqTracker() error {
-	iface := m.cfg.Interface
-	if iface == "" {
-		iface = detectPhysicalInterface()
-	}
+func (m *Manager) startSeqTracker(iface string) error {
 	if iface == "" {
 		return fmt.Errorf("no physical interface found")
 	}
@@ -192,12 +193,8 @@ func (m *Manager) startSeqTracker() error {
 
 // initNetworking sets up interface binding, network monitor, and interface
 // monitor. These are required by sing-tun's AutoRoute for loop prevention.
-func (m *Manager) initNetworking() error {
+func (m *Manager) initNetworking(physIface string) error {
 	m.ifaceFinder = control.NewDefaultInterfaceFinder()
-	physIface := m.cfg.Interface
-	if physIface == "" {
-		physIface = detectPhysicalInterface()
-	}
 	m.bindControl = control.Append(nil, control.BindToInterface(m.ifaceFinder, physIface, -1))
 
 	var err error

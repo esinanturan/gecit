@@ -9,7 +9,7 @@ type platformRawSocket struct {
 	fd int
 }
 
-func New() (RawSocket, error) {
+func New(_ string) (RawSocket, error) {
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_RAW)
 	if err != nil {
 		return nil, fmt.Errorf("raw socket: %w", err)

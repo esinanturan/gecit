@@ -142,7 +142,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 	m.reader = rd
 
-	rs, err := rawsock.New()
+	rs, err := rawsock.New("")
 	if err != nil {
 		m.Stop()
 		return fmt.Errorf("raw socket: %w", err)
