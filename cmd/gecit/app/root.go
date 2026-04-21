@@ -17,7 +17,7 @@ macOS/Windows: TUN transparent proxy (all apps intercepted)`,
 
 func init() {
 	rootCmd.PersistentFlags().IntSlice("ports", []int{443}, "target destination ports")
-	rootCmd.PersistentFlags().String("interface", "", "network interface, macOS only (auto-detect if empty)")
+	rootCmd.PersistentFlags().String("interface", "", "network interface, macOS/Windows only (auto-detect if empty)")
 
 	viper.BindPFlag("ports", rootCmd.PersistentFlags().Lookup("ports"))
 	viper.BindPFlag("interface", rootCmd.PersistentFlags().Lookup("interface"))
